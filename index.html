@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Content Pilot — Paros Safari</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 430px; margin: 0 auto; min-height: 100vh; }
+.header { padding: 48px 20px 20px; }
+.header .subtitle { color: #f97316; font-size: 13px; font-weight: 600; }
+.header h1 { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.header p { color: #6b7280; font-size: 14px; margin-top: 4px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 20px 20px; }
+.stat { background: #1a1a1a; border-radius: 16px; padding: 14px; text-align: center; }
+.stat .num { font-size: 24px; font-weight: 700; }
+.stat .label { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.orange { color: #f97316; } .green { color: #22c55e; } .blue { color: #3b82f6; }
+.upload-btn { margin: 0 20px 16px; background: #f97316; border-radius: 20px; padding: 18px 20px; display: flex; align-items: center; gap: 14px; cursor: pointer; border: none; width: calc(100% - 40px); color: white; }
+.upload-btn .icon { background: rgba(255,255,255,0.2); border-radius: 12px; padding: 10px; display: flex; }
+.upload-btn .text strong { display: block; font-size: 17px; font-weight: 700; }
+.upload-btn .text span { font-size: 13px; color: rgba(255,255,255,0.8); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px 16px; }
+.card { background: #1a1a1a; border-radius: 20px; padding: 18px; cursor: pointer; border: none; width: 100%; text-align: left; color: #f5f5f5; }
+.card strong { display: block; font-size: 15px; font-weight: 600; }
+.card span { font-size: 12px; color: #6b7280; margin-top: 2px; display: block; }
+.tip { margin: 0 20px 30px; background: #1a1a1a; border-radius: 16px; padding: 16px; border: 1px solid rgba(249,115,22,0.2); }
+.tip .tip-label { color: #f97316; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.tip p { font-size: 13px; color: #9ca3af; line-height: 1.5; }
+.screen { display: none; padding: 48px 20px 20px; }
+.screen-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.back-btn { background: #1a1a1a; border: none; color: #f5f5f5; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+.screen-title h2 { font-size: 20px; font-weight: 700; }
+.screen-title p { font-size: 13px; color: #6b7280; }
+.upload-types { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.upload-type { background: #1a1a1a; border-radius: 20px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; border: 2px dashed #2a2a2a; }
+.upload-type input { display: none; }
+.upload-type span { font-size: 14px; font-weight: 500; }
+.upload-type .type-icon { font-size: 32px; }
+.status-box { background: #1a1a1a; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.result-box { background: #1a1a1a; border-radius: 16px; padding: 16px; }
+.result-title { color: #22c55e; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tag { background: rgba(249,115,22,0.15); color: #fb923c; font-size: 12px; padding: 4px 10px; border-radius: 20px; }
+.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.score-bar { width: 100px; height: 6px; background: #2a2a2a; border-radius: 3px; margin: 0 8px; }
+.score-fill { height: 6px; background: #f97316; border-radius: 3px; }
+.idea-item { background: #242424; border-radius: 12px; padding: 12px; margin-bottom: 8px; font-size: 13px; color: #d1d5db; }
+.primary-btn { width: 100%; background: #f97316; color: white; border: none; border-radius: 14px; padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+.agent-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px; }
+.agent-tab { flex-shrink: 0; padding: 8px 14px; border-radius: 20px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; background: #1a1a1a; color: #9ca3af; }
+.agent-tab.active { background: #f97316; color: white; }
+.chat-area { min-height: 300px; max-height: 400px; overflow-y: auto; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px; }
+.msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.5; }
+.msg.user { background: #f97316; color: white; align-self: flex-end; }
+.msg.agent { background: #1a1a1a; color: #e5e7eb; align-self: flex-start; }
+.chat-input { display: flex; gap: 8px; }
+.chat-input input { flex: 1; background: #1a1a1a; border: none; border-radius: 14px; padding: 14px 16px; color: #f5f5f5; font-size: 14px; outline: none; }
+.send-btn { background: #f97316; border: none; border-radius: 14px; padding: 14px 18px; cursor: pointer; color: white; font-size: 18px; }
+.empty-state { text-align: center; padding: 40px 20px; color: #4b5563; }
+.empty-state .big-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+.approval-card { background: #1a1a1a; border-radius: 20px; padding: 16px; margin-bottom: 12px; }
+.approval-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.approval-platform { background: rgba(249,115,22,0.15); color: #fb923c; font-size: 11px; padding: 3px 8px; border-radius: 20px; }
+.score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.score-cell { text-align: center; }
+.score-cell .val { font-size: 20px; font-weight: 700; }
+.score-cell .lbl { font-size: 10px; color: #6b7280; }
+.action-btns { display: flex; gap: 8px; }
+.approve-btn { flex: 1; background: #16a34a; border: none; color: white; border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.reject-btn { flex: 1; background: #242424; border: none; color: #d1d5db; border-radius: 12px; padding: 12px; font-size: 14px; cursor: pointer; }
+.lead-card { background: #1a1a1a; border-radius: 18px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+.lead-avatar { width: 44px; height: 44px; background: rgba(249,115,22,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.lead-info { flex: 1; }
+.lead-info strong { font-size: 15px; display: block; }
+.lead-info span { font-size: 12px; color: #6b7280; }
+.lead-status { font-size: 11px; padding: 4px 8px; border-radius: 20px; }
+.status-new { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.status-hot { background: rgba(239,68,68,0.15); color: #f87171; }
+.status-booked { background: rgba(34,197,94,0.15); color: #4ade80; }
+#dashboard { display: block; }
+</style>
+</head>
+<body>
+<div id="dashboard">
+  <div class="header">
+    <div class="subtitle">PAROS SAFARI TOURS</div>
+    <h1>Content Pilot</h1>
+    <p id="greeting">Καλημέρα!</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="num orange" id="stat-approvals">0</div><div class="label">Εγκρίσεις</div></div>
+    <div class="stat"><div class="num green" id="stat-leads">0</div><div class="label">Leads</div></div>
+    <div class="stat"><div class="num blue" id="stat-posts">0</div><div class="label">Posts</div></div>
+  </div>
+  <button class="upload-btn" onclick="showScreen('upload')">
+    <div class="icon"><svg width="24" height="24" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg></div>
+    <div class="text"><strong>Ανέβασε Υλικό</strong><span>Φωτογραφίες, βίντεο, έγγραφα</span></div>
+  </button>
+  <div class="grid">
+    <button class="card" onclick="showScreen('approvals')"><strong>✅ Εγκρίσεις</strong><span>Approve content</span></button>
+    <button class="card" onclick="showScreen('leads')"><strong>💬 Leads</strong><span>Κρατήσεις</span></button>
+    <button class="card" onclick="showScreen('agents')"><strong>🤖 AI Agents</strong><span>CMO, Copywriter</span></button>
+    <button class="card" onclick="showScreen('media')"><strong>📸 Media</strong><span>Βιβλιοθήκη</span></button>
+  </div>
+  <div class="tip"><div class="tip-label">💡 Ξεκίνα εδώ</div><p>Ανέβασε βίντεο από safari για να δημιουργήσουν οι AI agents content ideas αυτόματα.</p></div>
+</div>
+
+<div id="upload" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="showScreen('dashboard')">←</button><div class="screen-title"><h2>Ανέβασε Υλικό</h2><p>AI ανάλυση αυτόματα</p></div></div>
+  <div class="upload-types">
+    <label class="upload-type"><div class="type-icon">🎬</div><span>Βίντεο</span><input type="file" accept="video/*" onchange="handleUpload(this,'video')"></label>
+    <label class="upload-type"><div class="type-icon">📸</div><span>Φωτογραφία</span><input type="file" accept="image/*" onchange="handleUpload(this,'photo')"></label>
+    <label class="upload-type"><div class="type-icon">🎙️</div><span>Voice Note</span><input type="file" accept="audio/*" onchange="handleUpload(this,'audio')"></label>
+    <label class="upload-type"><div class="type-icon">📄</div><span>Έγγραφο</span><input type="file" accept=".pdf,.doc,.docx" onchange="handleUpload(this,'document')"></label>
+  </div>
+  <div id="upload-status"></div>
+</div>
+
+<div id="agents" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="showScreen('dashboard')">←</button><div class="screen-title"><h2>AI Agents</h2><p>Μίλα με την ομάδα σου</p></div></div>
+  <div class="agent-tabs">
+    <button class="agent-tab active" onclick="setAgent('cmo',this)">📊 CMO</button>
+    <button class="agent-tab" onclick="setAgent('social',this)">📱 Social</button>
+    <button class="agent-tab" onclick="setAgent('copywriter',this)">✍️ Copywriter</button>
+    <button class="agent-tab" onclick="setAgent('sales',this)">💬 Sales</button>
+  </div>
+  <div class="chat-area" id="chat-area"><div class="empty-state"><div class="big-icon">🤖</div><p>Ρώτα τον CMO Agent!</p></div></div>
+  <div class="chat-input">
+    <input type="text" id="chat-msg" placeholder="Γράψε μήνυμα..." onkeydown="if(event.key==='Enter')sendMsg()">
+    <button class="send-btn" onclick="sendMsg()">➤</button>
+  </div>
+</div>
+
+<div id="approvals" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="showScreen('dashboard')">←</button><div class="screen-title"><h2>Εγκρίσεις</h2><p>Content σε αναμονή</p></div></div>
+  <div id="approvals-list"><div class="empty-state"><div class="big-icon">✅</div><p>Ανέβασε υλικό πρώτα</p></div></div>
+</div>
+
+<div id="leads" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="showScreen('dashboard')">←</button><div class="screen-title"><h2>Leads</h2><p>Κρατήσεις</p></div></div>
+  <div id="leads-list"><div class="empty-state"><div class="big-icon">💬</div><p>Σύνδεσε WhatsApp</p></div></div>
+</div>
+
+<div id="media" class="screen">
+  <div class="screen-header"><button class="back-btn" onclick="showScreen('dashboard')">←</button><div class="screen-title"><h2>Media Library</h2><p>Όλο το υλικό σου</p></div></div>
+  <div id="media-grid"><div class="empty-state"><div class="big-icon">📸</div><p>Ανέβασε υλικό πρώτα</p></div></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://cgoifymvchvawisjonxc.supabase.co';
+const SUPABASE_KEY='sb_publishable_2QUlYWgTTKbj1nQeP97Cuw_P1SbsBIl';
+const ANTHROPIC_KEY='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';
+const BUSINESS_ID='e75fabaa-39d1-4ac1-8536-772f7f11d14e';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let agent='cmo',history=[];
+const h=new Date().getHours();
+document.getElementById('greeting').textContent=h<12?'Καλημέρα!':h<17?'Καλό απόγευμα!':'Καλό βράδυ!';
+async function loadStats(){
+  const{count:a}=await sb.from('content_ideas').select('*',{count:'exact',head:true}).eq('business_id',BUSINESS_ID).eq('status','idea');
+  const{count:l}=await sb.from('leads').select('*',{count:'exact',head:true}).eq('business_id',BUSINESS_ID);
+  const{count:p}=await sb.from('posts').select('*',{count:'exact',head:true}).eq('business_id',BUSINESS_ID);
+  document.getElementById('stat-approvals').textContent=a||0;
+  document.getElementById('stat-leads').textContent=l||0;
+  document.getElementById('stat-posts').textContent=p||0;
+}
+loadStats();
+function showScreen(id){
+  document.querySelectorAll('#dashboard,.screen').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+  if(id==='approvals')loadApprovals();
+  if(id==='leads')loadLeads();
+  if(id==='media')loadMedia();
+}
+async function handleUpload(input,fileType){
+  const file=input.files[0];if(!file)return;
+  const st=document.getElementById('upload-status');
+  st.innerHTML='<div class="status-box"><div>⏳</div><div><strong>Ανεβάζω...</strong><span>'+file.name+'</span></div></div>';
+  try{
+    const ext=file.name.split('.').pop();
+    const path=BUSINESS_ID+'/'+Date.now()+'.'+ext;
+    const{error:e}=await sb.storage.from('media').upload(path,file);
+    if(e)throw e;
+    const{data:u}=sb.storage.from('media').getPublicUrl(path);
+    const{data:r}=await sb.from('media_files').insert({business_id:BUSINESS_ID,storage_path:path,public_url:u.publicUrl,file_type:fileType,file_size:file.size,title:file.name,status:'unused'}).select().single();
+    st.innerHTML='<div class="status-box"><div>🤖</div><div><strong>AI Ανάλυση...</strong><span>Περίμενε...</span></div></div>';
+    await analyzeMedia(r,file.name,fileType);
+  }catch(e){st.innerHTML='<div class="status-box"><div>❌</div><div><strong>Σφάλμα</strong><span>'+e.message+'</span></div></div>';}
+}
+async function analyzeMedia(record,fileName,fileType){
+  const st=document.getElementById('upload-status');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:'Analyze '+fileType+' file "'+fileName+'" for Paros Safari Tours ATV/buggy safaris. Return ONLY JSON: {"content_categories":["ATV","sunset"],"scores":{"quality_score":8,"emotional_score":7,"booking_potential_score":9},"content_ideas":[{"title":"Title","concept":"Concept","booking_score":9,"virality_score":7}],"recommended_cta":"Send SAFARI"}'}]})});
+  const d=await res.json();
+  const m=d.content[0].text.match(/{[sS]*}/);
+  const a=m?JSON.parse(m[0]):{};
+  if(record){
+    await sb.from('media_files').update({ai_tags:a.content_categories||[],quality_score:a.scores?.quality_score||5,booking_potential_score:a.scores?.booking_potential_score||5}).eq('id',record.id);
+    for(const i of(a.content_ideas||[])){await sb.from('content_ideas').insert({business_id:BUSINESS_ID,title:i.title,concept:i.concept,target_audience:'Tourists in Paros',platform:'instagram',content_type:'reel',booking_score:i.booking_score||8,virality_score:i.virality_score||7,brand_fit_score:8,recommended_cta:a.recommended_cta,status:'idea'});}
+  }
+  st.innerHTML='<div class="result-box"><div class="result-title">✅ Έτοιμο!</div><div class="tags">'+(a.content_categories||[]).map(t=>'<span class="tag">'+t+'</span>').join('')+'</div>'+(a.content_ideas||[]).map(i=>'<div class="idea-item">💡 <strong>'+i.title+'</strong><br>'+i.concept+'</div>').join('')+'<button class="primary-btn" onclick="showScreen('approvals')">Εγκρίσεις →</button></div>';
+  loadStats();
+}
+const prompts={cmo:'You are CMO Agent for Paros Safari Tours. Tourism marketing expert. Booking-focused. Respond in user language.',social:'You are Social Media Strategist for Paros Safari Tours. Paros first, safari second strategy. Respond in user language.',copywriter:'You are Copywriter for Paros Safari Tours. Premium adventurous brand voice. Respond in user language.',sales:'You are Sales Agent for Paros Safari Tours. Convert inquiries to bookings. Never confirm availability. Respond in user language.'};
+function setAgent(a,btn){agent=a;history=[];document.querySelectorAll('.agent-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');document.getElementById('chat-area').innerHTML='<div class="empty-state"><div class="big-icon">🤖</div><p>Ρώτα τον agent!</p></div>';}
+async function sendMsg(){
+  const input=document.getElementById('chat-msg');const msg=input.value.trim();if(!msg)return;input.value='';
+  const ca=document.getElementById('chat-area');ca.querySelector('.empty-state')?.remove();
+  ca.innerHTML+='<div class="msg user">'+msg+'</div><div class="msg agent" id="thinking">⏳...</div>';ca.scrollTop=ca.scrollHeight;
+  history.push({role:'user',content:msg});
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':ANTHROPIC_KEY,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,system:prompts[agent],messages:history})});
+  const d=await res.json();const reply=d.content[0].text;history.push({role:'assistant',content:reply});
+  document.getElementById('thinking').outerHTML='<div class="msg agent">'+reply.replace(/
+/g,'<br>')+'</div>';ca.scrollTop=ca.scrollHeight;
+}
+async function loadApprovals(){
+  const{data}=await sb.from('content_ideas').select('*').eq('business_id',BUSINESS_ID).eq('status','idea').order('booking_score',{ascending:false});
+  const el=document.getElementById('approvals-list');
+  if(!data?.length){el.innerHTML='<div class="empty-state"><div class="big-icon">✅</div><p>Ανέβασε υλικό πρώτα</p></div>';return;}
+  el.innerHTML=data.map(i=>'<div class="approval-card"><div class="approval-header"><strong>'+i.title+'</strong><span class="approval-platform">'+(i.platform||'instagram')+'</span></div><p style="font-size:13px;color:#9ca3af;margin-bottom:12px">'+i.concept+'</p><div class="score-grid"><div class="score-cell"><div class="val" style="color:'+(i.booking_score>=8?'#22c55e':'#facc15')+'">'+i.booking_score+'</div><div class="lbl">Booking</div></div><div class="score-cell"><div class="val" style="color:'+(i.virality_score>=8?'#22c55e':'#facc15')+'">'+i.virality_score+'</div><div class="lbl">Viral</div></div><div class="score-cell"><div class="val" style="color:#22c55e">'+(i.brand_fit_score||8)+'</div><div class="lbl">Brand</div></div></div><div class="action-btns"><button class="approve-btn" onclick="decide(''+i.id+'','approved')">✓ Approve</button><button class="reject-btn" onclick="decide(''+i.id+'','rejected')">✗ Reject</button></div></div>').join('');
+}
+async function decide(id,dec){
+  await sb.from('content_ideas').update({status:dec==='approved'?'script_ready':'archived'}).eq('id',id);
+  await sb.from('approvals').insert({business_id:BUSINESS_ID,content_idea_id:id,decision:dec,decided_at:new Date().toISOString()});
+  loadApprovals();loadStats();
+}
+async function loadLeads(){
+  const{data}=await sb.from('leads').select('*').eq('business_id',BUSINESS_ID).order('first_contact',{ascending:false});
+  const el=document.getElementById('leads-list');
+  if(!data?.length){el.innerHTML='<div class="empty-state"><div class="big-icon">💬</div><p>Δεν υπάρχουν leads ακόμα</p></div>';return;}
+  el.innerHTML=data.map(l=>'<div class="lead-card"><div class="lead-avatar">💬</div><div class="lead-info"><strong>'+(l.name||l.contact_id||'Unknown')+'</strong><span>'+(l.contact_channel||'whatsapp')+'</span></div><span class="lead-status status-'+(l.status||'new')+'">'+l.status+'</span></div>').join('');
+}
+async function loadMedia(){
+  const{data}=await sb.from('media_files').select('*').eq('business_id',BUSINESS_ID).order('date_uploaded',{ascending:false});
+  const el=document.getElementById('media-grid');
+  if(!data?.length){el.innerHTML='<div class="empty-state"><div class="big-icon">📸</div><p>Ανέβασε υλικό πρώτα</p></div>';return;}
+  el.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+data.map(f=>'<div style="background:#1a1a1a;border-radius:16px;padding:14px"><div style="font-size:28px;margin-bottom:8px">'+(f.file_type==='video'?'🎬':f.file_type==='photo'?'📸':f.file_type==='audio'?'🎙️':'📄')+'</div><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.title||'Untitled')+'</div><div style="font-size:11px;color:#6b7280">'+f.status+'</div>'+(f.booking_potential_score?'<div style="font-size:11px;color:#f97316;margin-top:4px">📈 '+f.booking_potential_score+'/10</div>':'')+'</div>').join('')+'</div>';
+}
+</script>
+</body>
+</html>
